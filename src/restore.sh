@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-. /env.sh
+. "$(dirname "$0")/env.sh"
 
 read_secret() {
     VAR_NAME="$1"

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-. /env.sh
+. "$(dirname "$0")/env.sh"
 
 # Run the backup immediately if no schedule is provided
 if [ -z "$SCHEDULE" ]; then

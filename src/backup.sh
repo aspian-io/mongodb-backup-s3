@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-. /env.sh
+. "$(dirname "$0")/env.sh"
 
 echo "[DEBUG][$(date)] Starting backup.sh..."
 echo "[DEBUG] MONGODB_HOST=$MONGODB_HOST"

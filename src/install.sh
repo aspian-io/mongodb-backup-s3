@@ -1,10 +1,10 @@
 #!/bin/sh
 set -e
 
-: "${GOCRON_VERSION:=0.0.10}"
+: "${GOCRON_VERSION:=0.0.5}"
 : "${TARGETARCH:=amd64}"
 
-GOCRON_URL="https://github.com/odise/go-cron/releases/download/$GOCRON_VERSION/go-cron-linux-$TARGETARCH.tar.gz"
+GOCRON_URL="https://github.com/ivoronin/go-cron/releases/download/v$GOCRON_VERSION/go-cron_${GOCRON_VERSION}_linux_${TARGETARCH}.tar.gz"
 TEMP_FILE="/tmp/go-cron.tar.gz"
 
 echo "[INFO] Downloading go-cron version $GOCRON_VERSION for architecture $TARGETARCH..."

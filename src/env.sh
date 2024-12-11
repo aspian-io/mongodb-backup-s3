@@ -6,11 +6,22 @@ read_env_file() {
     FILE_VAR_NAME="${VAR_NAME}_FILE"
     FILE_PATH="$(eval echo "\$$FILE_VAR_NAME")"
 
-    # If *_FILE is set and file exists, read its content
+    # Check if the *_FILE variable is set and the file exists
     if [ -n "$FILE_PATH" ] && [ -f "$FILE_PATH" ]; then
         export "$VAR_NAME"="$(cat "$FILE_PATH")"
+        echo "[DEBUG][$(date)] Loaded secret for $VAR_NAME from $FILE_PATH"
+    else
+        # Fallback: If *_FILE is not set, ensure the main variable exists
+        CURRENT_VALUE="$(eval echo "\$$VAR_NAME")"
+        if [ -z "$CURRENT_VALUE" ]; then
+            echo "[ERROR][$(date)] $VAR_NAME is not set and $FILE_VAR_NAME is not available."
+            exit 1
+        else
+            echo "[DEBUG][$(date)] Environment variable $VAR_NAME is already set."
+        fi
     fi
 }
+
 
 #######################################
 # MongoDB Configuration

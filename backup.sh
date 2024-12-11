@@ -1,8 +1,19 @@
 #!/bin/sh
 set -e
 
-echo "[INFO] Starting MongoDB backup process..."
+echo "[DEBUG][$(date)] Starting backup.sh..."
+
 . /env.sh
+
+echo "[DEBUG][$(date)] Environment variables at backup start:"
+echo "MONGODB_HOST=$MONGODB_HOST"
+echo "MONGODB_USER=$MONGODB_USER"
+echo "MONGO_INITDB_ROOT_USERNAME=$MONGO_INITDB_ROOT_USERNAME"
+echo "S3_BUCKET=$S3_BUCKET"
+echo "S3_PREFIX=$S3_PREFIX"
+echo "S3_REGION=$S3_REGION"
+echo "S3_ENDPOINT=$S3_ENDPOINT"
+echo "BACKUP_KEEP_DAYS=$BACKUP_KEEP_DAYS"
 
 # Function to read secrets from *_FILE if available
 read_secret() {
@@ -12,72 +23,76 @@ read_secret() {
     if [ -n "$FILE_PATH" ] && [ -f "$FILE_PATH" ]; then
         VAL="$(cat "$FILE_PATH")"
         export $VAR_NAME="$VAL"
-        echo "[DEBUG] Loaded secret for $VAR_NAME from file $FILE_PATH"
+        echo "[DEBUG][$(date)] Loaded secret for $VAR_NAME from file $FILE_PATH"
     fi
 }
 
-# Read secrets
+echo "[DEBUG][$(date)] Reading secrets..."
 read_secret MONGODB_HOST
 read_secret MONGODB_USER
 read_secret MONGODB_PASS
+read_secret MONGO_INITDB_ROOT_USERNAME
+read_secret MONGO_INITDB_ROOT_PASSWORD
 read_secret AWS_ACCESS_KEY_ID
 read_secret AWS_SECRET_ACCESS_KEY
 read_secret S3_ENDPOINT
 
-# Validate required variables
 if [ -z "$MONGODB_HOST" ]; then
-    echo "[ERROR] MONGODB_HOST is not set."
+    echo "[ERROR][$(date)] MONGODB_HOST is not set."
     exit 1
 fi
 
 if [ -z "$S3_BUCKET" ]; then
-    echo "[ERROR] S3_BUCKET is not set."
+    echo "[ERROR][$(date)] S3_BUCKET is not set."
     exit 1
 fi
 
 if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo "[ERROR] AWS_ACCESS_KEY_ID is not set."
+    echo "[ERROR][$(date)] AWS_ACCESS_KEY_ID is not set."
     exit 1
 fi
 
 if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "[ERROR] AWS_SECRET_ACCESS_KEY is not set."
+    echo "[ERROR][$(date)] AWS_SECRET_ACCESS_KEY is not set."
     exit 1
 fi
 
 AUTH_ARGS=""
 if [ -n "$MONGODB_USER" ] && [ -n "$MONGODB_PASS" ]; then
+    echo "[DEBUG][$(date)] Using MONGODB_USER and MONGODB_PASS for authentication."
     AUTH_ARGS="--username=$MONGODB_USER --password=$MONGODB_PASS"
+elif [ -n "$MONGO_INITDB_ROOT_USERNAME" ] && [ -n "$MONGO_INITDB_ROOT_PASSWORD" ]; then
+    echo "[DEBUG][$(date)] Using MONGO_INITDB_ROOT_USERNAME and MONGO_INITDB_ROOT_PASSWORD for authentication."
+    AUTH_ARGS="--username=$MONGO_INITDB_ROOT_USERNAME --password=$MONGO_INITDB_ROOT_PASSWORD"
 else
-    echo "[WARN] MONGODB_USER or MONGODB_PASS not provided. Attempting connection without auth."
+    echo "[WARN][$(date)] No authentication credentials found. Attempting no-auth backup."
 fi
 
-[ -z "$S3_REGION" ] && echo "[WARN] S3_REGION not set. The AWS CLI may use a default region."
-[ -z "$S3_ENDPOINT" ] && echo "[INFO] S3_ENDPOINT not set. Using the default AWS endpoint."
-echo "[INFO] Using BACKUP_KEEP_DAYS=$BACKUP_KEEP_DAYS"
-echo "[INFO] Using S3_PREFIX='${S3_PREFIX}' (if empty, backups go into the bucket root)"
+[ -z "$S3_REGION" ] && echo "[WARN][$(date)] S3_REGION not set. The AWS CLI may use a default region."
+[ -z "$S3_ENDPOINT" ] && echo "[DEBUG][$(date)] S3_ENDPOINT not set. Using default AWS endpoint."
+echo "[DEBUG][$(date)] BACKUP_KEEP_DAYS=$BACKUP_KEEP_DAYS"
+echo "[DEBUG][$(date)] S3_PREFIX='$S3_PREFIX'"
 
 TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 BACKUP_NAME="mongodb-backup-$TIMESTAMP"
 DUMP_PATH="/tmp/$BACKUP_NAME"
 
-echo "[INFO] Running mongodump to create backup..."
+echo "[INFO][$(date)] Running mongodump..."
 mongodump --host="$MONGODB_HOST" $AUTH_ARGS --archive="$DUMP_PATH" --gzip
-echo "[INFO] mongodump completed successfully."
+echo "[INFO][$(date)] mongodump completed successfully."
 
 S3_URI="s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}$BACKUP_NAME"
-echo "[INFO] Uploading backup to $S3_URI ..."
+echo "[INFO][$(date)] Uploading backup to $S3_URI..."
 aws s3 cp "$DUMP_PATH" "$S3_URI" \
     ${S3_REGION:+--region "$S3_REGION"} \
-    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
-echo "[INFO] Backup uploaded successfully."
+    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || { echo "[ERROR][$(date)] Failed to upload backup to S3."; exit 1; }
+echo "[INFO][$(date)] Backup uploaded successfully."
 
 rm -f "$DUMP_PATH"
-echo "[INFO] Local backup file removed."
+echo "[INFO][$(date)] Local backup file removed."
 
-# Cleanup old backups
 if [ -n "$BACKUP_KEEP_DAYS" ] && [ "$BACKUP_KEEP_DAYS" -gt 0 ]; then
-    echo "[INFO] Cleaning up backups older than $BACKUP_KEEP_DAYS days..."
+    echo "[INFO][$(date)] Cleaning up backups older than $BACKUP_KEEP_DAYS days..."
     OLD_DATE=$(date -d "-$BACKUP_KEEP_DAYS days" +%Y%m%d%H%M%S)
     aws s3 ls "s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}" \
         ${S3_REGION:+--region "$S3_REGION"} \
@@ -87,15 +102,15 @@ if [ -n "$BACKUP_KEEP_DAYS" ] && [ "$BACKUP_KEEP_DAYS" -gt 0 ]; then
         if echo "$FILE" | grep -q "^mongodb-backup-"; then
             FILE_TIMESTAMP=$(echo "$FILE" | sed 's/mongodb-backup-//')
             if [ "$FILE_TIMESTAMP" \< "$OLD_DATE" ]; then
-                echo "[INFO] Deleting old backup: $FILE"
+                echo "[INFO][$(date)] Deleting old backup: $FILE"
                 aws s3 rm "s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}$FILE" \
                     ${S3_REGION:+--region "$S3_REGION"} \
-                    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
+                    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || echo "[WARN][$(date)] Failed to delete old backup $FILE."
             fi
         fi
     done
 else
-    echo "[INFO] BACKUP_KEEP_DAYS not set or zero, skipping old backup cleanup."
+    echo "[INFO][$(date)] BACKUP_KEEP_DAYS not set or zero, skipping old backup cleanup."
 fi
 
-echo "[INFO] Backup and cleanup process completed successfully."
+echo "[INFO][$(date)] Backup and cleanup process completed successfully."

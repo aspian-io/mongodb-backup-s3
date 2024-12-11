@@ -1,34 +1,39 @@
-#!/bin/sh
-
-#######################################
-# MONGODB CONFIGURATION
-#######################################
+# env.sh
 : "${MONGODB_HOST:=}"
-: "${MONGODB_HOST_FILE:=}"
+export MONGODB_HOST
+
 : "${MONGODB_USER:=}"
-: "${MONGODB_USER_FILE:=}"
+export MONGODB_USER
+
 : "${MONGODB_PASS:=}"
-: "${MONGODB_PASS_FILE:=}"
+export MONGODB_PASS
 
-#######################################
-# AWS / S3 CONFIGURATION
-#######################################
+: "${MONGO_INITDB_ROOT_USERNAME:=}"
+export MONGO_INITDB_ROOT_USERNAME
+
+: "${MONGO_INITDB_ROOT_PASSWORD:=}"
+export MONGO_INITDB_ROOT_PASSWORD
+
 : "${AWS_ACCESS_KEY_ID:=}"
-: "${AWS_ACCESS_KEY_ID_FILE:=}"
+export AWS_ACCESS_KEY_ID
+
 : "${AWS_SECRET_ACCESS_KEY:=}"
-: "${AWS_SECRET_ACCESS_KEY_FILE:=}"
+export AWS_SECRET_ACCESS_KEY
+
 : "${S3_BUCKET:=}"
-: "${S3_PREFIX:=}"   # If set, backups will be placed under this prefix (folder) in the S3 bucket
+export S3_BUCKET
+
+: "${S3_PREFIX:=}"
+export S3_PREFIX
+
 : "${S3_REGION:=}"
+export S3_REGION
+
 : "${S3_ENDPOINT:=}"
-: "${S3_ENDPOINT_FILE:=}"
+export S3_ENDPOINT
 
-#######################################
-# BACKUP RETENTION
-#######################################
 : "${BACKUP_KEEP_DAYS:=7}"
+export BACKUP_KEEP_DAYS
 
-#######################################
-# SCHEDULE CONFIGURATION (CRON)
-#######################################
 : "${SCHEDULE:=}"
+export SCHEDULE

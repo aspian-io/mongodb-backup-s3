@@ -12,7 +12,7 @@ if [ -z "$SCHEDULE" ]; then
 else
     echo "[INFO][$(date)] SCHEDULE defined as '$SCHEDULE'. Setting up cron job."
     echo "[DEBUG][$(date)] Writing cron job to /etc/cron.d/mongodb-backup"
-    echo "$SCHEDULE root /backup.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/mongodb-backup
+    echo "$SCHEDULE root . /env.sh; /backup.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/mongodb-backup
     chmod 0644 /etc/cron.d/mongodb-backup
 
     # Ensure log file exists

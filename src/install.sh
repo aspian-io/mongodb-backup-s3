@@ -2,11 +2,25 @@
 set -e
 
 : "${GOCRON_VERSION:=0.0.10}"
+: "${TARGETARCH:=amd64}"
 
-echo "[INFO] Installing go-cron version $GOCRON_VERSION for architecture $TARGETARCH..."
-curl -L -o /tmp/go-cron.tar.gz "https://github.com/odise/go-cron/releases/download/$GOCRON_VERSION/go-cron-linux-$TARGETARCH.tar.gz"
-tar xzf /tmp/go-cron.tar.gz -C /tmp
+GOCRON_URL="https://github.com/odise/go-cron/releases/download/$GOCRON_VERSION/go-cron-linux-$TARGETARCH.tar.gz"
+TEMP_FILE="/tmp/go-cron.tar.gz"
+
+echo "[INFO] Downloading go-cron version $GOCRON_VERSION for architecture $TARGETARCH..."
+curl -fsSL -o "$TEMP_FILE" "$GOCRON_URL" || {
+    echo "[ERROR] Failed to download go-cron from $GOCRON_URL"
+    exit 1
+}
+
+echo "[INFO] Extracting go-cron..."
+tar -xzf "$TEMP_FILE" -C /tmp || {
+    echo "[ERROR] Failed to extract go-cron from $TEMP_FILE"
+    exit 1
+}
+
+echo "[INFO] Installing go-cron..."
 mv /tmp/go-cron /usr/local/bin/go-cron
 chmod +x /usr/local/bin/go-cron
-rm /tmp/go-cron.tar.gz
+rm -f "$TEMP_FILE"
 echo "[INFO] go-cron installed successfully."

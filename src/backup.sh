@@ -19,8 +19,14 @@ read_secret() {
         VAL="$(cat "$FILE_PATH")"
         export $VAR_NAME="$VAL"
         echo "[DEBUG][$(date)] Loaded secret for $VAR_NAME from file $FILE_PATH"
+    elif [ -n "$(eval echo "\$$VAR_NAME")" ]; then
+        echo "[DEBUG][$(date)] Environment variable $VAR_NAME is already set."
+    else
+        echo "[ERROR][$(date)] $VAR_NAME is not set and $FILE_VAR_NAME is not available."
+        exit 1
     fi
 }
+
 
 # Load secrets
 read_secret MONGODB_HOST

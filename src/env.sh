@@ -1,64 +1,53 @@
 #!/bin/sh
 
-# Function to read secrets from *_FILE variables
-read_env_file() {
-    VAR_NAME="$1"
-    FILE_VAR_NAME="${VAR_NAME}_FILE"
-
-    # Check if *_FILE is set and non-empty before using eval
-    if [ -n "${!FILE_VAR_NAME:-}" ]; then
-        FILE_PATH="${!FILE_VAR_NAME}"
-
-        # Check if the file exists
-        if [ -f "$FILE_PATH" ]; then
-            export "$VAR_NAME"="$(cat "$FILE_PATH")"
-            echo "[DEBUG][$(date)] Loaded secret for $VAR_NAME from $FILE_PATH"
-        else
-            echo "[ERROR][$(date)] Secret file $FILE_PATH for $VAR_NAME does not exist."
-            exit 1
-        fi
-    elif [ -n "${!VAR_NAME:-}" ]; then
-        # If *_FILE is not set, check if the main variable is already set
-        echo "[DEBUG][$(date)] Environment variable $VAR_NAME is already set."
-    else
-        # Neither *_FILE nor the main variable is set
-        echo "[ERROR][$(date)] $VAR_NAME is not set and $FILE_VAR_NAME is not available."
-        exit 1
-    fi
-}
-
 #######################################
 # MongoDB Configuration
 #######################################
 : "${MONGODB_HOST:=}"
-read_env_file MONGODB_HOST
+if [ -n "${MONGODB_HOST_FILE:-}" ] && [ -f "${MONGODB_HOST_FILE}" ]; then
+    MONGODB_HOST="$(cat "${MONGODB_HOST_FILE}")"
+fi
 
 : "${MONGODB_USER:=}"
-read_env_file MONGODB_USER
+if [ -n "${MONGODB_USER_FILE:-}" ] && [ -f "${MONGODB_USER_FILE}" ]; then
+    MONGODB_USER="$(cat "${MONGODB_USER_FILE}")"
+fi
 
 : "${MONGODB_PASS:=}"
-read_env_file MONGODB_PASS
+if [ -n "${MONGODB_PASS_FILE:-}" ] && [ -f "${MONGODB_PASS_FILE}" ]; then
+    MONGODB_PASS="$(cat "${MONGODB_PASS_FILE}")"
+fi
 
 : "${MONGO_INITDB_ROOT_USERNAME:=}"
-read_env_file MONGO_INITDB_ROOT_USERNAME
+if [ -n "${MONGO_INITDB_ROOT_USERNAME_FILE:-}" ] && [ -f "${MONGO_INITDB_ROOT_USERNAME_FILE}" ]; then
+    MONGO_INITDB_ROOT_USERNAME="$(cat "${MONGO_INITDB_ROOT_USERNAME_FILE}")"
+fi
 
 : "${MONGO_INITDB_ROOT_PASSWORD:=}"
-read_env_file MONGO_INITDB_ROOT_PASSWORD
+if [ -n "${MONGO_INITDB_ROOT_PASSWORD_FILE:-}" ] && [ -f "${MONGO_INITDB_ROOT_PASSWORD_FILE}" ]; then
+    MONGO_INITDB_ROOT_PASSWORD="$(cat "${MONGO_INITDB_ROOT_PASSWORD_FILE}")"
+fi
 
 #######################################
 # AWS / S3 Configuration
 #######################################
 : "${AWS_ACCESS_KEY_ID:=}"
-read_env_file AWS_ACCESS_KEY_ID
+if [ -n "${AWS_ACCESS_KEY_ID_FILE:-}" ] && [ -f "${AWS_ACCESS_KEY_ID_FILE}" ]; then
+    AWS_ACCESS_KEY_ID="$(cat "${AWS_ACCESS_KEY_ID_FILE}")"
+fi
 
 : "${AWS_SECRET_ACCESS_KEY:=}"
-read_env_file AWS_SECRET_ACCESS_KEY
+if [ -n "${AWS_SECRET_ACCESS_KEY_FILE:-}" ] && [ -f "${AWS_SECRET_ACCESS_KEY_FILE}" ]; then
+    AWS_SECRET_ACCESS_KEY="$(cat "${AWS_SECRET_ACCESS_KEY_FILE}")"
+fi
 
 : "${S3_BUCKET:=}"
 : "${S3_PREFIX:=}"
 : "${S3_REGION:=}"
 : "${S3_ENDPOINT:=}"
-read_env_file S3_ENDPOINT
+if [ -n "${S3_ENDPOINT_FILE:-}" ] && [ -f "${S3_ENDPOINT_FILE}" ]; then
+    S3_ENDPOINT="$(cat "${S3_ENDPOINT_FILE}")"
+fi
 
 #######################################
 # Backup & Schedule Configuration

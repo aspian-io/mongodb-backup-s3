@@ -1,21 +1,24 @@
 ARG MONGO_VERSION=8.0
-FROM mongo:${MONGO_VERSION}
-LABEL maintainer="Omid Rouhani <o.rohani@gmail.com>"
+FROM mongo:${MONGO_VERSION} AS base
 
-# Install AWS CLI and cron
-RUN apt-get update && apt-get install -y curl unzip cron && rm -rf /var/lib/apt/lists/* \
-    && curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
-    && unzip awscliv2.zip \
-    && ./aws/install \
-    && rm -rf awscliv2.zip aws
+ARG TARGETARCH
+ARG GOCRON_VERSION=0.0.10
 
-COPY run.sh /usr/local/bin/run.sh
-COPY backup.sh /backup.sh
-COPY restore.sh /restore.sh
-COPY env.sh /env.sh
+# Install dependencies
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && ./aws/install && rm -rf awscliv2.zip aws
 
-RUN chmod +x /usr/local/bin/run.sh /backup.sh /restore.sh
+COPY src/install.sh /install.sh
+RUN chmod +x /install.sh && /install.sh
+
+COPY src/env.sh /env.sh
+COPY src/backup.sh /backup.sh
+COPY src/restore.sh /restore.sh
+COPY src/run.sh /run.sh
+
+RUN chmod +x /backup.sh /restore.sh /run.sh
 
 ENV PATH="/usr/local/bin:$PATH"
 
-ENTRYPOINT ["/usr/local/bin/run.sh"]
+ENTRYPOINT ["/run.sh"]

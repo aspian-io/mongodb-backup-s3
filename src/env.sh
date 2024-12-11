@@ -1,4 +1,8 @@
-# env.sh
+#!/bin/sh
+
+#######################################
+# MongoDB Configuration
+#######################################
 : "${MONGODB_HOST:=}"
 export MONGODB_HOST
 
@@ -14,6 +18,9 @@ export MONGO_INITDB_ROOT_USERNAME
 : "${MONGO_INITDB_ROOT_PASSWORD:=}"
 export MONGO_INITDB_ROOT_PASSWORD
 
+#######################################
+# AWS / S3 Configuration
+#######################################
 : "${AWS_ACCESS_KEY_ID:=}"
 export AWS_ACCESS_KEY_ID
 
@@ -32,6 +39,9 @@ export S3_REGION
 : "${S3_ENDPOINT:=}"
 export S3_ENDPOINT
 
+#######################################
+# Backup & Schedule Configuration
+#######################################
 : "${BACKUP_KEEP_DAYS:=7}"
 export BACKUP_KEEP_DAYS
 

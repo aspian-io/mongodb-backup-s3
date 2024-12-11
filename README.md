@@ -9,10 +9,13 @@ This Docker image provides an automated mechanism to back up a MongoDB database 
 
 **Key Features:**
 
-- **Docker Secrets & Env Files**: Easily inject credentials and configurations via Docker secrets or environment variables, securely decoupling sensitive data from the code.
-- **Configurable S3 Endpoint & Region**: Supports custom S3 endpoints and regions, enabling use with AWS, MinIO, or other S3-compatible object stores.
-- **Backup Retention**: Automatically clean up old backups based on a defined retention period.
-- **Multi-Architecture Support**: Build and push images for both `linux/amd64` and `linux/arm64` platforms.
+- **Automated Scheduled Backups**: Use `SCHEDULE` to run backups at specified cron times.
+- **On-demand Backups**: If `SCHEDULE` is not set, the container runs one backup and exits.
+- **Restore Functionality**: Restore from the latest or a specified backup timestamp.
+- **Configurable MongoDB Version**: Build with `mongo:6.0`, `mongo:7.0`, or `mongo:8.0`.
+- **S3-Compatible Storage**: AWS, MinIO, or other S3 endpoints supported.
+- **Backup Retention**: Clean up old backups after `BACKUP_KEEP_DAYS`.
+- **Multi-Arch Support**: Built for `linux/amd64` and `linux/arm64`.
 
 ## Getting Started
 
@@ -22,48 +25,72 @@ You can provide configuration via environment variables directly or point them t
 
 **Supported Variables:**
 
-| Variable                    | Description                                                                           | Required | Default     |
-|-----------------------------|---------------------------------------------------------------------------------------|----------|-------------|
-| `MONGODB_HOST`              | Hostname or IP address of the MongoDB server.                                         | Yes      | N/A         |
-| `MONGODB_HOST_FILE`         | File containing the MongoDB host.                                                     | No       | N/A         |
-| `MONGODB_USER`              | MongoDB username for authentication.                                                  | No       | N/A         |
-| `MONGODB_USER_FILE`         | File containing the MongoDB username.                                                 | No       | N/A         |
-| `MONGODB_PASS`              | MongoDB password for authentication.                                                  | No       | N/A         |
-| `MONGODB_PASS_FILE`         | File containing the MongoDB password.                                                 | No       | N/A         |
-| `AWS_ACCESS_KEY_ID`         | AWS or S3-compatible access key ID.                                                   | Yes      | N/A         |
-| `AWS_ACCESS_KEY_ID_FILE`    | File containing the AWS access key ID.                                                | No       | N/A         |
-| `AWS_SECRET_ACCESS_KEY`     | AWS or S3-compatible secret access key.                                               | Yes      | N/A         |
-| `AWS_SECRET_ACCESS_KEY_FILE`| File containing the AWS secret access key.                                            | No       | N/A         |
-| `S3_BUCKET`                 | S3 bucket name to store the backups.                                                  | Yes      | N/A         |
-| `S3_PREFIX`                 | S3 prefix/path inside the bucket (optional).                                          | No       | `""`        |
-| `S3_REGION`                 | AWS region or S3-compatible region (optional).                                        | No       | `""`        |
-| `S3_ENDPOINT`               | Custom S3 endpoint URL (optional).                                                    | No       | `""`        |
-| `S3_ENDPOINT_FILE`          | File containing the S3 endpoint URL (optional).                                       | No       | `""`        |
-| `BACKUP_KEEP_DAYS`          | Number of days to keep old backups before deletion.                                    | No       | `7`         |
+| Variable                    | Description                                                                                                     | Required | Default     |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------|----------|-------------|
+| `MONGODB_HOST`              | Hostname or IP address of the MongoDB server.                                                                   | Yes      | N/A         |
+| `MONGODB_HOST_FILE`         | File containing the MongoDB host.                                                                               | No       | N/A         |
+| `MONGODB_USER`              | MongoDB username for authentication.                                                                            | No       | N/A         |
+| `MONGODB_USER_FILE`         | File containing the MongoDB username.                                                                           | No       | N/A         |
+| `MONGODB_PASS`              | MongoDB password for authentication.                                                                            | No       | N/A         |
+| `MONGODB_PASS_FILE`         | File containing the MongoDB password.                                                                           | No       | N/A         |
+| `AWS_ACCESS_KEY_ID`         | AWS or S3-compatible access key ID.                                                                             | Yes      | N/A         |
+| `AWS_ACCESS_KEY_ID_FILE`    | File containing the AWS access key ID.                                                                          | No       | N/A         |
+| `AWS_SECRET_ACCESS_KEY`     | AWS or S3-compatible secret access key.                                                                         | Yes      | N/A         |
+| `AWS_SECRET_ACCESS_KEY_FILE`| File containing the AWS secret access key.                                                                      | No       | N/A         |
+| `S3_BUCKET`                 | S3 bucket name to store the backups.                                                                            | Yes      | N/A         |
+| `S3_PREFIX`                 | S3 prefix/path inside the bucket (optional).                                                                    | No       | `""`        |
+| `S3_REGION`                 | AWS region or S3-compatible region (optional).                                                                  | No       | `""`        |
+| `S3_ENDPOINT`               | Custom S3 endpoint URL (optional).                                                                              | No       | `""`        |
+| `S3_ENDPOINT_FILE`          | File containing the S3 endpoint URL (optional).                                                                 | No       | `""`        |
+| `BACKUP_KEEP_DAYS`          | Number of days to keep old backups before deletion.                                                             | No       | `7`         |
+| `SCHEDULE`                  | Cron syntax. If set, backups run on the defined schedule. If not set, one backup runs and exits. (optional).    | No       | `""`        |
 
-### Usage with Docker
+### Usage
+
+### Run Once (No Schedule)
 
 ```bash
 docker run --rm \
-    -e MONGODB_HOST="mongo:27017" \
-    -e AWS_ACCESS_KEY_ID="your_access_key" \
-    -e AWS_SECRET_ACCESS_KEY="your_secret_key" \
-    -e S3_BUCKET="your_s3_bucket" \
-    -e S3_REGION="us-east-1" \
-    -v /run/secrets:/run/secrets:ro \
-    ghcr.io/aspian-io/mongodb-backup-s3:latest
+  -e MONGODB_HOST="mongo:27017" \
+  -e S3_BUCKET="my-s3-bucket" \
+  -e AWS_ACCESS_KEY_ID="your_access_key" \
+  -e AWS_SECRET_ACCESS_KEY="your_secret_key" \
+  aspian87/mongodb-backup-s3:6.0
 ```
 
-If you prefer Docker secrets:
+### Scheduled Backups
+
+To run daily at 23:30 on Monday, Wednesday, and Friday (`30 23 * * 0,2,4` is UTC-based, adjust as needed):
+
 ```bash
 docker run --rm \
-    -e MONGODB_HOST_FILE="/run/secrets/mongodb_host" \
-    -e AWS_ACCESS_KEY_ID_FILE="/run/secrets/aws_access_key_id" \
-    -e AWS_SECRET_ACCESS_KEY_FILE="/run/secrets/aws_secret_access_key" \
-    -e S3_BUCKET="your_s3_bucket" \
-    -v /run/secrets:/run/secrets:ro \
-    ghcr.io/aspian-io/mongodb-backup-s3:latest
+  -e MONGODB_HOST="mongo:27017" \
+  -e S3_BUCKET="my-s3-bucket" \
+  -e AWS_ACCESS_KEY_ID="your_access_key" \
+  -e AWS_SECRET_ACCESS_KEY="your_secret_key" \
+  -e SCHEDULE="30 23 * * 0,2,4" \
+  aspian87/mongodb-backup-s3:6.0
 ```
+
+
+### Restore from Latest Backup
+
+**CAUTION: This drops all existing data in MongoDB!**
+
+```bash
+docker exec <container_name> sh restore.sh
+```
+
+If your bucket has more than 1000 backups, the latest may not be the actual latest due to `aws s3 ls` pagination.
+
+### Restore from Specific Backup Timestamp
+
+```bash
+docker exec <container_name> sh restore.sh 20241012030000
+```
+
+This will download and restore `mongodb-backup-20241012030000` from S3.
+
 
 ### Using Docker Compose
 
@@ -87,52 +114,13 @@ services:
       S3_BUCKET: "my-s3-bucket"
       AWS_ACCESS_KEY_ID: "your_access_key"
       AWS_SECRET_ACCESS_KEY: "your_secret_key"
+      # SCHEDULE: "30 23 * * 0,2,4" # Example schedule
       BACKUP_KEEP_DAYS: "14"
     depends_on:
       - mongo
-    # Optionally, mount secrets or configure a cron-like scheduler externally
 ```
-Change the tag (e.g. aspian87/mongodb-backup-s3:7.0 or 8.0) as needed.
 
-### Kubernetes CronJob Example
-
-```yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: mongodb-backup
-spec:
-  schedule: "0 2 * * *" # daily at 2 AM
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          containers:
-            - name: mongodb-backup
-              image: ghcr.io/aspian-io/mongodb-backup-s3:latest
-              env:
-                - name: MONGODB_HOST
-                  value: "my-mongo-service:27017"
-                - name: S3_BUCKET
-                  value: "my-s3-bucket"
-                - name: BACKUP_KEEP_DAYS
-                  value: "14"
-              # If using secrets:
-              # env:
-              # - name: AWS_ACCESS_KEY_ID_FILE
-              #   value: /run/secrets/aws_access_key_id
-              # - name: AWS_SECRET_ACCESS_KEY_FILE
-              #   value: /run/secrets/aws_secret_access_key
-              volumeMounts:
-                - name: secrets
-                  mountPath: /run/secrets
-                  readOnly: true
-          volumes:
-            - name: secrets
-              secret:
-                secretName: aws-credentials
-          restartPolicy: OnFailure
-```
+Adjust the tag (`6.0`, `7.0`, `8.0`) as needed.
 
 ### Logging
 

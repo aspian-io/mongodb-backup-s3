@@ -3,31 +3,34 @@
 #######################################
 # MONGODB CONFIGURATION
 #######################################
-: "${MONGODB_HOST:=}"           # Required, no default
-: "${MONGODB_HOST_FILE:=}"      # File containing MONGODB_HOST
-: "${MONGODB_USER:=}"           # Optional
-: "${MONGODB_USER_FILE:=}"      # File containing MONGODB_USER
-: "${MONGODB_PASS:=}"           # Optional
-: "${MONGODB_PASS_FILE:=}"      # File containing MONGODB_PASS
+: "${MONGODB_HOST:=}"
+: "${MONGODB_HOST_FILE:=}"
+: "${MONGODB_USER:=}"
+: "${MONGODB_USER_FILE:=}"
+: "${MONGODB_PASS:=}"
+: "${MONGODB_PASS_FILE:=}"
 
 #######################################
 # AWS / S3 CONFIGURATION
 #######################################
-: "${AWS_ACCESS_KEY_ID:=}"           # Required
-: "${AWS_ACCESS_KEY_ID_FILE:=}"      # File containing AWS_ACCESS_KEY_ID
-: "${AWS_SECRET_ACCESS_KEY:=}"       # Required
-: "${AWS_SECRET_ACCESS_KEY_FILE:=}"  # File containing AWS_SECRET_ACCESS_KEY
-: "${S3_BUCKET:=}"                   # Required
-: "${S3_PREFIX:=}"                   # Optional, default empty
-: "${S3_REGION:=}"                   # Optional, default empty
-: "${S3_ENDPOINT:=}"                 # Optional, default empty
-: "${S3_ENDPOINT_FILE:=}"            # File containing S3_ENDPOINT
+: "${AWS_ACCESS_KEY_ID:=}"
+: "${AWS_ACCESS_KEY_ID_FILE:=}"
+: "${AWS_SECRET_ACCESS_KEY:=}"
+: "${AWS_SECRET_ACCESS_KEY_FILE:=}"
+: "${S3_BUCKET:=}"
+: "${S3_PREFIX:=}"
+: "${S3_REGION:=}"
+: "${S3_ENDPOINT:=}"
+: "${S3_ENDPOINT_FILE:=}"
 
 #######################################
-# BACKUP RETENTION CONFIGURATION
+# BACKUP RETENTION
 #######################################
-: "${BACKUP_KEEP_DAYS:=7}"  # Optional, default 7
+: "${BACKUP_KEEP_DAYS:=7}"
 
 #######################################
-# Add any future environment variables here
+# SCHEDULE CONFIGURATION
+# A cron schedule like "30 23 * * 0,2,4"
+# If defined, run.sh will create a cron job to run the backup.
 #######################################
+: "${SCHEDULE:=}"

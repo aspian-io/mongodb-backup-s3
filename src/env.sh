@@ -5,27 +5,27 @@
 #######################################
 : "${MONGODB_HOST:=}"
 if [ -n "${MONGODB_HOST_FILE:-}" ] && [ -f "${MONGODB_HOST_FILE}" ]; then
-    MONGODB_HOST="$(cat "${MONGODB_HOST_FILE}")"
+    MONGODB_HOST="$(< "${MONGODB_HOST_FILE}")"
 fi
 
 : "${MONGODB_USER:=}"
 if [ -n "${MONGODB_USER_FILE:-}" ] && [ -f "${MONGODB_USER_FILE}" ]; then
-    MONGODB_USER="$(cat "${MONGODB_USER_FILE}")"
+    MONGODB_USER="$(< "${MONGODB_USER_FILE}")"
 fi
 
 : "${MONGODB_PASS:=}"
 if [ -n "${MONGODB_PASS_FILE:-}" ] && [ -f "${MONGODB_PASS_FILE}" ]; then
-    MONGODB_PASS="$(cat "${MONGODB_PASS_FILE}")"
+    MONGODB_PASS="$(< "${MONGODB_PASS_FILE}")"
 fi
 
 : "${MONGO_INITDB_ROOT_USERNAME:=}"
 if [ -n "${MONGO_INITDB_ROOT_USERNAME_FILE:-}" ] && [ -f "${MONGO_INITDB_ROOT_USERNAME_FILE}" ]; then
-    MONGO_INITDB_ROOT_USERNAME="$(cat "${MONGO_INITDB_ROOT_USERNAME_FILE}")"
+    MONGO_INITDB_ROOT_USERNAME="$(< "${MONGO_INITDB_ROOT_USERNAME_FILE}")"
 fi
 
 : "${MONGO_INITDB_ROOT_PASSWORD:=}"
-if [ -n "${MONGO_INITDB_ROOT_PASSWORD_FILE:-}" ] && [ -f "${MONGO_INITDB_ROOT_PASSWORD_FILE}" ]; then
-    MONGO_INITDB_ROOT_PASSWORD="$(cat "${MONGO_INITDB_ROOT_PASSWORD_FILE}")"
+if [ -n "${MONGO_INITDB_ROOT_PASSWORD_FILE:-}" ] && [ -f "${MONGO_INITDB_ROOT_PASSWORD_FILE}") ]; then
+    MONGO_INITDB_ROOT_PASSWORD="$(< "${MONGO_INITDB_ROOT_PASSWORD_FILE}")"
 fi
 
 #######################################
@@ -33,12 +33,12 @@ fi
 #######################################
 : "${AWS_ACCESS_KEY_ID:=}"
 if [ -n "${AWS_ACCESS_KEY_ID_FILE:-}" ] && [ -f "${AWS_ACCESS_KEY_ID_FILE}" ]; then
-    AWS_ACCESS_KEY_ID="$(cat "${AWS_ACCESS_KEY_ID_FILE}")"
+    AWS_ACCESS_KEY_ID="$(< "${AWS_ACCESS_KEY_ID_FILE}")"
 fi
 
 : "${AWS_SECRET_ACCESS_KEY:=}"
 if [ -n "${AWS_SECRET_ACCESS_KEY_FILE:-}" ] && [ -f "${AWS_SECRET_ACCESS_KEY_FILE}" ]; then
-    AWS_SECRET_ACCESS_KEY="$(cat "${AWS_SECRET_ACCESS_KEY_FILE}")"
+    AWS_SECRET_ACCESS_KEY="$(< "${AWS_SECRET_ACCESS_KEY_FILE}")"
 fi
 
 : "${S3_BUCKET:=}"
@@ -46,7 +46,7 @@ fi
 : "${S3_REGION:=}"
 : "${S3_ENDPOINT:=}"
 if [ -n "${S3_ENDPOINT_FILE:-}" ] && [ -f "${S3_ENDPOINT_FILE}" ]; then
-    S3_ENDPOINT="$(cat "${S3_ENDPOINT_FILE}")"
+    S3_ENDPOINT="$(< "${S3_ENDPOINT_FILE}")"
 fi
 
 #######################################

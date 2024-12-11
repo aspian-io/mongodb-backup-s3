@@ -10,35 +10,7 @@ echo "[DEBUG] S3_PREFIX=$S3_PREFIX"
 echo "[DEBUG] BACKUP_KEEP_DAYS=$BACKUP_KEEP_DAYS"
 echo "[DEBUG] SCHEDULE=$SCHEDULE"
 
-# Function to read secrets from *_FILE
-read_secret() {
-    VAR_NAME="$1"
-    FILE_VAR_NAME="${VAR_NAME}_FILE"
-    FILE_PATH="$(eval echo "\$$FILE_VAR_NAME")"
-    if [ -n "$FILE_PATH" ] && [ -f "$FILE_PATH" ]; then
-        VAL="$(cat "$FILE_PATH")"
-        export $VAR_NAME="$VAL"
-        echo "[DEBUG][$(date)] Loaded secret for $VAR_NAME from file $FILE_PATH"
-    elif [ -n "$(eval echo "\$$VAR_NAME")" ]; then
-        echo "[DEBUG][$(date)] Environment variable $VAR_NAME is already set."
-    else
-        echo "[ERROR][$(date)] $VAR_NAME is not set and $FILE_VAR_NAME is not available."
-        exit 1
-    fi
-}
-
-
-# Load secrets
-read_secret MONGODB_HOST
-read_secret MONGODB_USER
-read_secret MONGODB_PASS
-read_secret MONGO_INITDB_ROOT_USERNAME
-read_secret MONGO_INITDB_ROOT_PASSWORD
-read_secret AWS_ACCESS_KEY_ID
-read_secret AWS_SECRET_ACCESS_KEY
-read_secret S3_ENDPOINT
-
-# Validate required vars
+# Validate required variables
 if [ -z "$MONGODB_HOST" ]; then
     echo "[ERROR][$(date)] MONGODB_HOST is not set."
     exit 1
@@ -59,6 +31,7 @@ if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
     exit 1
 fi
 
+# Configure authentication arguments
 AUTH_ARGS=""
 if [ -n "$MONGODB_USER" ] && [ -n "$MONGODB_PASS" ]; then
     AUTH_ARGS="--username=$MONGODB_USER --password=$MONGODB_PASS"
@@ -78,7 +51,10 @@ S3_URI="s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}$BACKUP_NAME"
 echo "[INFO][$(date)] Uploading backup to $S3_URI ..."
 aws s3 cp "$DUMP_PATH" "$S3_URI" \
     ${S3_REGION:+--region "$S3_REGION"} \
-    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
+    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || {
+        echo "[ERROR][$(date)] Failed to upload backup to S3."
+        exit 1
+    }
 echo "[INFO][$(date)] Backup uploaded successfully."
 
 rm -f "$DUMP_PATH"
@@ -97,7 +73,9 @@ if [ -n "$BACKUP_KEEP_DAYS" ] && [ "$BACKUP_KEEP_DAYS" -gt 0 ]; then
                 echo "[INFO][$(date)] Deleting old backup: $FILE"
                 aws s3 rm "s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}$FILE" \
                     ${S3_REGION:+--region "$S3_REGION"} \
-                    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"}
+                    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || {
+                        echo "[WARN][$(date)] Failed to delete old backup $FILE."
+                    }
             fi
         fi
     done

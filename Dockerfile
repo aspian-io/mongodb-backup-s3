@@ -11,10 +11,12 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 
 ADD src/install.sh install.sh
 RUN sh install.sh && rm install.sh
-
+    
 ADD src/run.sh run.sh
 ADD src/env.sh env.sh
 ADD src/backup.sh backup.sh
 ADD src/restore.sh restore.sh
 
-CMD ["sh", "run.sh"]
+ENV PATH="/usr/local/bin:$PATH"
+
+ENTRYPOINT ["/run.sh"]

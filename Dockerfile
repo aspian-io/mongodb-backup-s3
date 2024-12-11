@@ -12,9 +12,6 @@ RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists
 COPY src/install.sh /install.sh
 RUN chmod +x /install.sh && TARGETARCH=${TARGETARCH} GOCRON_VERSION=${GOCRON_VERSION} /install.sh
 
-# Create the /run/secrets directory
-RUN mkdir -p /run/secrets && chmod 0755 /run/secrets
-
 COPY src/env.sh /env.sh
 COPY src/backup.sh /backup.sh
 COPY src/restore.sh /restore.sh

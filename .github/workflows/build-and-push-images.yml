@@ -59,7 +59,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/aspian-io/mongodb-backup-s3:${{ matrix.tag }}
-            ${{ secrets.DOCKER_USERNAME }}/mongodb-backup-s3:${{ matrix.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/mongodb-backup-s3:${{ matrix.tag }}
           file: ./Dockerfile
           context: .
           build-args: |

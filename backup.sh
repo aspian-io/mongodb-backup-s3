@@ -55,6 +55,7 @@ fi
 [ -z "$S3_REGION" ] && echo "[WARN] S3_REGION not set. The AWS CLI may use a default region."
 [ -z "$S3_ENDPOINT" ] && echo "[INFO] S3_ENDPOINT not set. Using the default AWS endpoint."
 echo "[INFO] Using BACKUP_KEEP_DAYS=$BACKUP_KEEP_DAYS"
+echo "[INFO] Using S3_PREFIX='${S3_PREFIX}' (if empty, backups go into the bucket root)"
 
 TIMESTAMP=$(date +"%Y%m%d%H%M%S")
 BACKUP_NAME="mongodb-backup-$TIMESTAMP"

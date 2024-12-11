@@ -18,7 +18,7 @@
 : "${AWS_SECRET_ACCESS_KEY:=}"
 : "${AWS_SECRET_ACCESS_KEY_FILE:=}"
 : "${S3_BUCKET:=}"
-: "${S3_PREFIX:=}"
+: "${S3_PREFIX:=}"   # If set, backups will be placed under this prefix (folder) in the S3 bucket
 : "${S3_REGION:=}"
 : "${S3_ENDPOINT:=}"
 : "${S3_ENDPOINT_FILE:=}"
@@ -29,8 +29,6 @@
 : "${BACKUP_KEEP_DAYS:=7}"
 
 #######################################
-# SCHEDULE CONFIGURATION
-# A cron schedule like "30 23 * * 0,2,4"
-# If defined, run.sh will create a cron job to run the backup.
+# SCHEDULE CONFIGURATION (CRON)
 #######################################
 : "${SCHEDULE:=}"

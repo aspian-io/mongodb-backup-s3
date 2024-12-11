@@ -9,13 +9,13 @@ This Docker image provides an automated mechanism to back up a MongoDB database 
 
 **Key Features:**
 
+- **S3_PREFIX for Organized Backups**: Store backups under a specific "folder" (prefix) in your bucket by setting `S3_PREFIX`.
 - **Automated Scheduled Backups**: Use `SCHEDULE` to run backups at specified cron times.
 - **On-demand Backups**: If `SCHEDULE` is not set, the container runs one backup and exits.
 - **Restore Functionality**: Restore from the latest or a specified backup timestamp.
 - **Configurable MongoDB Version**: Build with `mongo:6.0`, `mongo:7.0`, or `mongo:8.0`.
-- **S3-Compatible Storage**: AWS, MinIO, or other S3 endpoints supported.
-- **Backup Retention**: Clean up old backups after `BACKUP_KEEP_DAYS`.
 - **Multi-Arch Support**: Built for `linux/amd64` and `linux/arm64`.
+- **Backup Retention**: Clean up old backups after `BACKUP_KEEP_DAYS`.
 
 ## Getting Started
 
@@ -42,6 +42,7 @@ You can provide configuration via environment variables directly or point them t
 | `S3_REGION`                 | AWS region or S3-compatible region (optional).                                                                  | No       | `""`        |
 | `S3_ENDPOINT`               | Custom S3 endpoint URL (optional).                                                                              | No       | `""`        |
 | `S3_ENDPOINT_FILE`          | File containing the S3 endpoint URL (optional).                                                                 | No       | `""`        |
+| `S3_PREFIX`                 | If set, backups will be placed under this prefix (folder) in the S3 bucket (optional).                          | No       | `""`        |
 | `BACKUP_KEEP_DAYS`          | Number of days to keep old backups before deletion.                                                             | No       | `7`         |
 | `SCHEDULE`                  | Cron syntax. If set, backups run on the defined schedule. If not set, one backup runs and exits. (optional).    | No       | `""`        |
 
@@ -55,6 +56,7 @@ docker run --rm \
   -e S3_BUCKET="my-s3-bucket" \
   -e AWS_ACCESS_KEY_ID="your_access_key" \
   -e AWS_SECRET_ACCESS_KEY="your_secret_key" \
+  -e S3_PREFIX="myfolder" \
   aspian87/mongodb-backup-s3:6.0
 ```
 
@@ -68,6 +70,7 @@ docker run --rm \
   -e S3_BUCKET="my-s3-bucket" \
   -e AWS_ACCESS_KEY_ID="your_access_key" \
   -e AWS_SECRET_ACCESS_KEY="your_secret_key" \
+  -e S3_PREFIX="myfolder" \
   -e SCHEDULE="30 23 * * 0,2,4" \
   aspian87/mongodb-backup-s3:6.0
 ```
@@ -114,10 +117,12 @@ services:
       S3_BUCKET: "my-s3-bucket"
       AWS_ACCESS_KEY_ID: "your_access_key"
       AWS_SECRET_ACCESS_KEY: "your_secret_key"
-      # SCHEDULE: "30 23 * * 0,2,4" # Example schedule
+      S3_PREFIX: "myfolder"
+      # SCHEDULE: "30 23 * * 0,2,4"
       BACKUP_KEEP_DAYS: "14"
     depends_on:
       - mongo
+
 ```
 
 Adjust the tag (`6.0`, `7.0`, `8.0`) as needed.

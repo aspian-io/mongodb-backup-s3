@@ -1,0 +1,74 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        mongo_version: ['6.0', '7.0', '8.0']
+        include:
+          - mongo_version: '6.0'
+            tag: '6.0'
+          - mongo_version: '7.0'
+            tag: '7.0'
+          - mongo_version: '8.0'
+            tag: '8.0'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          install: true
+
+      # Log in to DockerHub
+      - name: Log in to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and push to GHCR and DockerHub
+        uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: |
+            ghcr.io/aspian-io/mongodb-backup-s3:${{ matrix.tag }}
+            ${{ secrets.DOCKER_USERNAME }}/mongodb-backup-s3:${{ matrix.tag }}
+          file: ./Dockerfile
+          context: .
+          build-args: |
+            MONGO_VERSION=${{ matrix.mongo_version }}
+          platforms: |
+            linux/amd64
+            linux/arm64
+
+      - name: Logout from registries
+        run: |
+          docker logout ghcr.io
+          docker logout

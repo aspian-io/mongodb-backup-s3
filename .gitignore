@@ -1,0 +1,6 @@
+# Ignore build artifacts and secrets
+*.log
+env.sh~
+run.sh~
+.env
+.DS_Store

@@ -2,7 +2,7 @@ ARG MONGO_VERSION=8.0
 FROM mongo:${MONGO_VERSION} AS base
 
 ARG TARGETARCH
-ARG GOCRON_VERSION=0.0.10
+ARG GOCRON_VERSION=0.0.5
 
 # Install dependencies
 RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/* \

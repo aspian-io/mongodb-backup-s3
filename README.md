@@ -89,7 +89,7 @@ If your bucket has more than 1000 backups, the latest may not be the actual late
 ### Restore from Specific Backup Timestamp
 
 ```bash
-docker exec <container_name> sh restore.sh 20241012030000
+docker exec <container_name> sh restore.sh 2024-12-12T11%3A37%3A00
 ```
 
 This will download and restore `mongodb-backup-20241012030000` from S3.

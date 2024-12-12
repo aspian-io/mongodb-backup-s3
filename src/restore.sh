@@ -53,7 +53,9 @@ if [ -z "$TIMESTAMP" ]; then
     fi
     BACKUP_FILE="$LATEST"
 else
-    BACKUP_FILE="mongodb-backup-$TIMESTAMP"
+    # Decode URL-encoded timestamp
+    DECODED_TIMESTAMP=$(echo "$TIMESTAMP" | sed 's/%3A/:/g')
+    BACKUP_FILE="mongodb-backup-$DECODED_TIMESTAMP.archive"
 fi
 
 RESTORE_PATH="/tmp/restore.archive"

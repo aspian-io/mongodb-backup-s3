@@ -1,6 +1,6 @@
-#!/bin/sh
-
-set -eu
+#!/bin/bash
+set -e
+set -u
 set -o pipefail
 
 # Source the environment variables

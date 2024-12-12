@@ -1,86 +1,71 @@
 #!/bin/sh
-set -e
 
+set -eu
+set -o pipefail
+
+# Source the environment variables
 . "$(dirname "$0")/env.sh"
 
-echo "[DEBUG][$(date)] Starting backup.sh..."
-echo "[DEBUG] MONGODB_HOST=$MONGODB_HOST"
-echo "[DEBUG] S3_BUCKET=$S3_BUCKET"
-echo "[DEBUG] S3_PREFIX=$S3_PREFIX"
-echo "[DEBUG] BACKUP_KEEP_DAYS=$BACKUP_KEEP_DAYS"
-echo "[DEBUG] SCHEDULE=$SCHEDULE"
+echo "Creating backup of MongoDB database on host $MONGODB_HOST..."
 
-# Validate required variables
-if [ -z "$MONGODB_HOST" ]; then
-    echo "[ERROR][$(date)] MONGODB_HOST is not set."
-    exit 1
-fi
-
-if [ -z "$S3_BUCKET" ]; then
-    echo "[ERROR][$(date)] S3_BUCKET is not set."
-    exit 1
-fi
-
-if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo "[ERROR][$(date)] AWS_ACCESS_KEY_ID is not set."
-    exit 1
-fi
-
-if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo "[ERROR][$(date)] AWS_SECRET_ACCESS_KEY is not set."
-    exit 1
-fi
-
-# Configure authentication arguments
+# Set authentication arguments
 AUTH_ARGS=""
 if [ -n "$MONGODB_USER" ] && [ -n "$MONGODB_PASS" ]; then
-    AUTH_ARGS="--username=$MONGODB_USER --password=$MONGODB_PASS"
+  AUTH_ARGS="--username=$MONGODB_USER --password=$MONGODB_PASS"
 elif [ -n "$MONGO_INITDB_ROOT_USERNAME" ] && [ -n "$MONGO_INITDB_ROOT_PASSWORD" ]; then
-    AUTH_ARGS="--username=$MONGO_INITDB_ROOT_USERNAME --password=$MONGO_INITDB_ROOT_PASSWORD"
+  AUTH_ARGS="--username=$MONGO_INITDB_ROOT_USERNAME --password=$MONGO_INITDB_ROOT_PASSWORD"
 fi
 
-TIMESTAMP=$(date +"%Y%m%d%H%M%S")
-BACKUP_NAME="mongodb-backup-$TIMESTAMP"
+# Generate backup
+TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%S")
+BACKUP_NAME="mongodb-backup-${TIMESTAMP}.archive"
 DUMP_PATH="/tmp/$BACKUP_NAME"
 
-echo "[INFO][$(date)] Running mongodump..."
-mongodump --host="$MONGODB_HOST" $AUTH_ARGS --archive="$DUMP_PATH" --gzip
-echo "[INFO][$(date)] mongodump completed."
+echo "Running mongodump..."
+mongodump --host "$MONGODB_HOST" $AUTH_ARGS --archive="$DUMP_PATH" --gzip
+echo "Backup created at $DUMP_PATH."
 
-S3_URI="s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}$BACKUP_NAME"
-echo "[INFO][$(date)] Uploading backup to $S3_URI ..."
-aws s3 cp "$DUMP_PATH" "$S3_URI" \
-    ${S3_REGION:+--region "$S3_REGION"} \
-    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || {
-        echo "[ERROR][$(date)] Failed to upload backup to S3."
-        exit 1
-    }
-echo "[INFO][$(date)] Backup uploaded successfully."
+# Prepare S3 upload
+S3_URI_BASE="s3://${S3_BUCKET}/${S3_PREFIX}/$BACKUP_NAME"
 
-rm -f "$DUMP_PATH"
-echo "[INFO][$(date)] Local backup removed."
-
-if [ -n "$BACKUP_KEEP_DAYS" ] && [ "$BACKUP_KEEP_DAYS" -gt 0 ]; then
-    echo "[INFO][$(date)] Cleaning old backups older than $BACKUP_KEEP_DAYS days..."
-    OLD_DATE=$(date -d "-$BACKUP_KEEP_DAYS days" +%Y%m%d%H%M%S)
-    aws s3 ls "s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}" \
-        ${S3_REGION:+--region "$S3_REGION"} \
-        ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} | while read -r line; do
-        FILE=$(echo "$line" | awk '{print $4}')
-        if echo "$FILE" | grep -q "^mongodb-backup-"; then
-            FILE_TIMESTAMP=$(echo "$FILE" | sed 's/mongodb-backup-//')
-            if [ "$FILE_TIMESTAMP" \< "$OLD_DATE" ]; then
-                echo "[INFO][$(date)] Deleting old backup: $FILE"
-                aws s3 rm "s3://$S3_BUCKET/${S3_PREFIX:+$S3_PREFIX/}$FILE" \
-                    ${S3_REGION:+--region "$S3_REGION"} \
-                    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || {
-                        echo "[WARN][$(date)] Failed to delete old backup $FILE."
-                    }
-            fi
-        fi
-    done
+if [ -n "$PASSPHRASE" ]; then
+  echo "Encrypting backup..."
+  ENCRYPTED_DUMP_PATH="${DUMP_PATH}.gpg"
+  gpg --symmetric --batch --passphrase "$PASSPHRASE" "$DUMP_PATH"
+  rm "$DUMP_PATH"
+  LOCAL_FILE="$ENCRYPTED_DUMP_PATH"
+  S3_URI="${S3_URI_BASE}.gpg"
 else
-    echo "[INFO][$(date)] No old backup cleanup required."
+  LOCAL_FILE="$DUMP_PATH"
+  S3_URI="$S3_URI_BASE"
 fi
 
-echo "[INFO][$(date)] Backup process completed successfully."
+echo "Uploading backup to S3: $S3_BUCKET..."
+aws s3 cp "$LOCAL_FILE" "$S3_URI" \
+    ${S3_REGION:+--region "$S3_REGION"} \
+    ${S3_ENDPOINT:+--endpoint-url "$S3_ENDPOINT"} || {
+  echo "[ERROR] Failed to upload backup to S3."
+  exit 1
+}
+rm "$LOCAL_FILE"
+echo "Backup uploaded successfully."
+
+# Remove old backups if BACKUP_KEEP_DAYS is set
+if [ -n "$BACKUP_KEEP_DAYS" ]; then
+  SEC=$((86400 * BACKUP_KEEP_DAYS))
+  DATE_FROM_REMOVE=$(date -d "@$(($(date +%s) - SEC))" +%Y-%m-%d)
+  BACKUPS_QUERY="Contents[?LastModified<='${DATE_FROM_REMOVE} 00:00:00'].{Key: Key}"
+
+  echo "Removing old backups from $S3_BUCKET..."
+  aws s3api list-objects \
+    --bucket "$S3_BUCKET" \
+    --prefix "$S3_PREFIX" \
+    --query "$BACKUPS_QUERY" \
+    --output text \
+    | xargs -n1 -t -I 'KEY' aws s3 rm s3://"$S3_BUCKET"/'KEY' || {
+      echo "[WARN] Failed to remove some old backups."
+    }
+  echo "Old backup removal complete."
+fi
+
+echo "Backup process completed successfully."

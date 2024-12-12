@@ -8,10 +8,11 @@ timestamp=$(date +"%Y-%m-%dT%H:%M:%S")
 backup_file="/tmp/mongodb-backup-${timestamp}.archive"
 
 echo "Running mongodump..."
+AUTH_DB=${MONGODB_AUTH_DB:-admin} # Default to 'admin' if not set
 mongodump --host "$MONGODB_HOST" \
           --username "$MONGODB_USER" \
           --password "$MONGODB_PASS" \
-          --authenticationDatabase "$MONGODB_AUTH_DB" \
+          --authenticationDatabase "$AUTH_DB" \
           --archive="$backup_file" --gzip
 echo "Backup created at $backup_file."
 
